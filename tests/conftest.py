@@ -45,10 +45,12 @@ def client(db_session):
 
 @pytest.fixture
 def sample_publisher_data():
+    import uuid
+    unique_id = uuid.uuid4().hex[:8]
     return {
         "company_name": "Test Publisher",
         "website_url": "https://testpublisher.com",
-        "contact_email": "contact@testpublisher.com",
+        "contact_email": f"contact_{unique_id}@testpublisher.com",
         "contact_name": "John Doe",
         "website_categories": ["news", "technology"],
         "estimated_monthly_traffic": 100000,

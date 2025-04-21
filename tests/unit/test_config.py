@@ -35,7 +35,8 @@ class TestSettings:
         """Test that CORS_ORIGINS are validated correctly."""
         # Valid URLs
         valid_urls = ["http://localhost", "https://example.com"]
-        settings = Settings(CORS_ORIGINS=[AnyHttpUrl(url) for url in valid_urls])
+        # Use string URLs directly, Settings will validate them
+        settings = Settings(CORS_ORIGINS=valid_urls)
         assert len(settings.CORS_ORIGINS) == 2
         assert str(settings.CORS_ORIGINS[0]) == "http://localhost"
         assert str(settings.CORS_ORIGINS[1]) == "https://example.com"

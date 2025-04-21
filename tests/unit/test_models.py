@@ -9,6 +9,7 @@ class TestPublisherModel:
     def test_publisher_model_creation(self):
         """Test that a Publisher model can be created with required fields."""
         publisher = Publisher(
+            id="pub_test456",
             company_name="Test Company",
             website_url="https://example.com",
             contact_email="test@example.com",
@@ -16,7 +17,10 @@ class TestPublisherModel:
             website_categories=["news"],
             estimated_monthly_traffic=10000,
             integration_platform="custom",
-            preferred_task_types=["survey"]
+            preferred_task_types=["survey"],
+            is_active=True,
+            configuration={},
+            api_key="pk_live_test456"
         )
         
         assert publisher.company_name == "Test Company"
@@ -110,6 +114,9 @@ class TestPublisherModel:
         assert publisher.updated_at is None
         
         # Update the publisher to trigger updated_at
+        # Add a longer delay to ensure updated_at is different from created_at
+        import time
+        time.sleep(1.0)  # 1 second delay
         publisher.company_name = "Updated Timestamp Company"
         db_session.commit()
         

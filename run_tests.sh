@@ -2,7 +2,7 @@
 
 # Run tests with coverage and generate HTML report
 echo "Running tests with coverage..."
-pytest --cov=app --cov-report=term-missing --cov-report=html
+PYTHONPATH=. ./venv/bin/pytest --cov=app --cov-report=term-missing --cov-report=html
 
 # Check if tests passed
 if [ $? -eq 0 ]; then

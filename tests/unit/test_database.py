@@ -39,4 +39,5 @@ class TestDatabase:
         """Test that Base exists."""
         assert Base is not None
         assert hasattr(Base, 'metadata')
-        assert hasattr(Base, '__tablename__')
+        # Base is a declarative base class, it doesn't have __tablename__ itself
+        # Only its subclasses have __tablename__
