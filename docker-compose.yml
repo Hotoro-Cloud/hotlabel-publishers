@@ -8,16 +8,17 @@ services:
     volumes:
       - ./app:/app/app
     environment:
-      - POSTGRES_SERVER=db
+      - POSTGRES_SERVER=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=hotlabel_publishers
       - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/hotlabel_publishers
     depends_on:
-      - db
+      - postgres
       - redis
 
-  db:
+  postgres:
     image: postgres:13
     volumes:
       - postgres_data:/var/lib/postgresql/data

@@ -1,3 +1,6 @@
+redis>=4.2.0
+alembic>=1.7.0
+
 fastapi>=0.68.0,<0.69.0
 pydantic>=1.8.0,<2.0.0
 uvicorn>=0.15.0,<0.16.0
@@ -8,8 +11,8 @@ email-validator>=1.1.3,<1.2.0
 passlib>=1.7.4,<1.8.0
 python-jose>=3.3.0,<3.4.0
 python-multipart>=0.0.5,<0.1.0
-redis>=4.0.2,<4.1.0
 tenacity>=8.0.1,<9.0.0
+aioredis
 
 # Testing
 pytest>=7.0.0,<8.0.0

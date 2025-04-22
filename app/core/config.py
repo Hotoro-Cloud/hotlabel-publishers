@@ -1,6 +1,7 @@
 from pydantic import BaseSettings, AnyHttpUrl
 from typing import List, Optional, Union
 import secrets
+import os
 
 
 class Settings(BaseSettings):
@@ -12,6 +13,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", None)
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
@@ -19,13 +21,15 @@ class Settings(BaseSettings):
     DATABASE_URI: Optional[str] = None
     
     # Redis
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: str = ""
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
     
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        return self.DATABASE_URI or f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        if self.DATABASE_URI:
+            return self.DATABASE_URI
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
     
     class Config:
         env_file = ".env"
