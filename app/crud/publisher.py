@@ -2,15 +2,18 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 import uuid
 import secrets
+import httpx
 
 from app.models.publisher import Publisher
 from app.schemas.publisher import PublisherCreate, PublisherUpdate, PublisherConfigurationUpdate
+from app.schemas.task import Task
+from app.core.exceptions import ResourceNotFound, DuplicateResource
 
 def get_publisher(db: Session, publisher_id: str) -> Optional[Publisher]:
     return db.query(Publisher).filter(Publisher.id == publisher_id).first()
 
 def get_publisher_by_email(db: Session, email: str) -> Optional[Publisher]:
-    return db.query(Publisher).filter(Publisher.contact_email == email).first()
+    return db.query(Publisher).filter(Publisher.email == email).first()
 
 def get_publisher_by_api_key(db: Session, api_key: str) -> Optional[Publisher]:
     return db.query(Publisher).filter(Publisher.api_key == api_key).first()
@@ -19,38 +22,17 @@ def get_publishers(db: Session, skip: int = 0, limit: int = 100) -> List[Publish
     return db.query(Publisher).offset(skip).limit(limit).all()
 
 def create_publisher(db: Session, publisher: PublisherCreate) -> Publisher:
-    # Generate unique ID and API key
-    publisher_id = f"pub_{uuid.uuid4().hex[:8]}"
-    api_key = f"pk_live_{secrets.token_urlsafe(16)}"
+    # Check if publisher with same email exists
+    existing = db.query(Publisher).filter(Publisher.email == publisher.email).first()
+    if existing:
+        raise DuplicateResource(f"Publisher with email {publisher.email} already exists")
     
-    # Create new publisher with default configuration
+    # Create new publisher
     db_publisher = Publisher(
-        id=publisher_id,
-        api_key=api_key,
-        **publisher.dict(),
-        configuration={
-            "appearance": {
-                "theme": "light",
-                "primary_color": "#3366FF",
-                "border_radius": "4px",
-                "font_family": "Roboto, Arial, sans-serif"
-            },
-            "behavior": {
-                "task_display_frequency": 300,
-                "max_tasks_per_session": 5,
-                "show_task_after_seconds": 30,
-                "display_on_page_types": ["article", "video"]
-            },
-            "task_preferences": {
-                "preferred_task_types": publisher.preferred_task_types,
-                "max_complexity_level": 3,
-                "preferred_languages": ["en"]
-            },
-            "rewards": {
-                "content_access_duration_seconds": 3600,
-                "show_completion_feedback": True
-            }
-        }
+        name=publisher.name,
+        website=str(publisher.website),
+        email=publisher.email,
+        description=publisher.description
     )
     db.add(db_publisher)
     db.commit()
@@ -107,3 +89,24 @@ def regenerate_api_key(db: Session, publisher_id: str) -> Optional[str]:
     
     db.commit()
     return new_api_key
+
+async def get_available_tasks(
+    db: Session,
+    publisher_id: str,
+    status: Optional[str] = None,
+    limit: int = 10
+) -> List[Task]:
+    # In a real implementation, this would call the tasks service API
+    # For now, return mock data
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"http://tasks-service/api/v1/tasks",
+            params={
+                "publisher_id": publisher_id,
+                "status": status,
+                "limit": limit
+            }
+        )
+        if response.status_code == 200:
+            return [Task(**task) for task in response.json()]
+        return []

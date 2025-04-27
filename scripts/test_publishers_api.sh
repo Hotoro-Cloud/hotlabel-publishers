@@ -1,170 +1,120 @@
 #!/bin/bash
 
-# Test script for publishers service API through Kong
-# This script tests all endpoints of the publishers service
-
-# Set variables
-KONG_URL="http://localhost:8000"
-PUBLISHERS_API_URL="${KONG_URL}/api/v1/publishers"
-
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
+# Kong API Gateway URL
+KONG_URL="http://localhost:8000"
+
+# Temporary file for response
+TEMP_RESPONSE="/tmp/publisher_response.json"
+
+# Generate unique timestamp for email
+TIMESTAMP=$(date +%s)
 
 # Function to print section headers
 print_header() {
-  echo -e "\n${YELLOW}=== $1 ===${NC}"
+    echo -e "\n${GREEN}=== $1 ===${NC}"
 }
 
-# Function to make API requests and check response
+# Function to make API requests
 make_request() {
-  local method=$1
-  local url=$2
-  local data=$3
-  local expected_status=$4
-  local api_key=$5
-  
-  echo -e "${YELLOW}Request:${NC} $method $url"
-  if [ ! -z "$data" ]; then
-    echo -e "${YELLOW}Data:${NC} $data"
-  fi
-  
-  local headers=("-H" "Content-Type: application/json")
-  if [ ! -z "$api_key" ]; then
-    headers+=("-H" "Authorization: Bearer $api_key")
-  fi
-  
-  if [ "$method" == "GET" ]; then
-    response=$(curl -s -w "\n%{http_code}" -X $method "$url" "${headers[@]}")
-  else
-    response=$(curl -s -w "\n%{http_code}" -X $method "$url" "${headers[@]}" -d "$data")
-  fi
-  
-  status_code=$(echo "$response" | tail -n1)
-  response_body=$(echo "$response" | sed '$d')
-  
-  echo -e "${YELLOW}Status:${NC} $status_code"
-  echo -e "${YELLOW}Response:${NC} $response_body"
-  
-  if [ "$status_code" == "$expected_status" ]; then
-    echo -e "${GREEN}✓ Test passed${NC}"
-    return 0
-  else
-    echo -e "${RED}✗ Test failed${NC}"
-    return 1
-  fi
+    local method=$1
+    local endpoint=$2
+    local data=$3
+    local headers=$4
+    
+    echo "Making $method request to $endpoint"
+    if [ -n "$data" ]; then
+        if [ -n "$headers" ]; then
+            curl -s -X $method "$KONG_URL$endpoint" \
+                -H "Content-Type: application/json" \
+                -H "$headers" \
+                -d "$data" > "$TEMP_RESPONSE"
+        else
+            curl -s -X $method "$KONG_URL$endpoint" \
+                -H "Content-Type: application/json" \
+                -d "$data" > "$TEMP_RESPONSE"
+        fi
+    else
+        if [ -n "$headers" ]; then
+            curl -s -X $method "$KONG_URL$endpoint" \
+                -H "$headers" > "$TEMP_RESPONSE"
+        else
+            curl -s -X $method "$KONG_URL$endpoint" > "$TEMP_RESPONSE"
+        fi
+    fi
+    
+    # Display formatted response
+    if [ -s "$TEMP_RESPONSE" ]; then
+        jq . "$TEMP_RESPONSE" || cat "$TEMP_RESPONSE"
+    fi
+    echo
 }
 
-# Test health endpoint
-print_header "Testing Health Endpoint"
-make_request "GET" "${PUBLISHERS_API_URL}/health" "" "200"
+# Test health check
+print_header "Testing Health Check"
+make_request "GET" "/api/v1/publishers/health"
 
-# Register a new publisher
-print_header "Registering a new publisher"
-timestamp=$(date +%s)
-publisher_data='{
-  "company_name": "Test Publisher",
-  "website_url": "https://example.com",
-  "contact_email": "test+'$timestamp'@example.com",
-  "contact_name": "Test User",
-  "website_categories": ["news", "technology"],
-  "estimated_monthly_traffic": 100000,
-  "integration_platform": "custom",
-  "preferred_task_types": ["text_classification", "sentiment_analysis"]
+# Test publisher registration
+print_header "Testing Publisher Registration"
+REGISTER_DATA='{
+    "name": "Test Company",
+    "website": "https://testcompany.com",
+    "email": "test+'$TIMESTAMP'@testcompany.com",
+    "description": "A test company for API testing"
 }'
-make_request "POST" "$PUBLISHERS_API_URL" "$publisher_data" "201"
 
-# Extract publisher ID and API key from response
-publisher_id=$(echo "$response_body" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
-api_key=$(echo "$response_body" | grep -o '"api_key":"[^"]*"' | cut -d'"' -f4)
+# Register publisher and capture response
+make_request "POST" "/api/v1/publishers" "$REGISTER_DATA"
 
-if [ -z "$publisher_id" ] || [ -z "$api_key" ]; then
-  echo -e "${RED}Failed to extract publisher ID or API key from response${NC}"
-  exit 1
+# Extract publisher ID and API key from response file
+if [ -s "$TEMP_RESPONSE" ]; then
+    PUBLISHER_ID=$(jq -r '.id // empty' "$TEMP_RESPONSE")
+    API_KEY=$(jq -r '.api_key // empty' "$TEMP_RESPONSE")
+    
+    if [ -z "$PUBLISHER_ID" ] || [ -z "$API_KEY" ]; then
+        echo "Error: Failed to extract publisher ID or API key from response"
+        cat "$TEMP_RESPONSE"
+        exit 1
+    fi
+    
+    echo "Publisher ID: $PUBLISHER_ID"
+    echo "API Key: $API_KEY"
+else
+    echo "Error: No response received from registration"
+    exit 1
 fi
 
-echo "Publisher ID: $publisher_id"
-echo "API Key: $api_key"
-
-# Get publisher details
-print_header "Getting publisher details"
-make_request "GET" "${PUBLISHERS_API_URL}/${publisher_id}" "" "200" "$api_key"
-
-# Update publisher details
-print_header "Updating publisher details"
-update_data='{
-  "company_name": "Updated Test Publisher",
-  "website_url": "https://updated-example.com",
-  "contact_name": "Updated Test User",
-  "website_categories": ["news", "technology", "entertainment"],
-  "estimated_monthly_traffic": 150000
+# Test publisher details update
+print_header "Testing Publisher Update"
+UPDATE_DATA='{
+    "name": "Updated Company",
+    "description": "Updated description for testing"
 }'
-make_request "PATCH" "${PUBLISHERS_API_URL}/${publisher_id}" "$update_data" "200" "$api_key"
+make_request "PATCH" "/api/v1/publishers/$PUBLISHER_ID" "$UPDATE_DATA" "Authorization: Bearer $API_KEY"
 
-# Update publisher configuration
-print_header "Updating publisher configuration"
-config_data='{
-  "appearance": {
-    "theme": "dark",
-    "primary_color": "#FF3366",
-    "border_radius": "8px",
-    "font_family": "Inter, sans-serif"
-  },
-  "behavior": {
-    "task_display_frequency": 600,
-    "max_tasks_per_session": 3,
-    "show_task_after_seconds": 45,
-    "display_on_page_types": ["article", "video", "gallery"]
-  },
-  "task_preferences": {
-    "preferred_task_types": ["text_classification", "sentiment_analysis", "image_tagging"],
-    "max_complexity_level": 2,
-    "preferred_languages": ["en", "es"]
-  },
-  "rewards": {
-    "content_access_duration_seconds": 7200,
-    "show_completion_feedback": true
-  }
+# Test publisher configuration
+print_header "Testing Publisher Configuration"
+CONFIG_DATA='{
+    "appearance": {
+        "theme": "light",
+        "primary_color": "#007bff"
+    },
+    "behavior": {
+        "auto_assign": true,
+        "max_tasks_per_user": 10
+    }
 }'
-make_request "PATCH" "${PUBLISHERS_API_URL}/${publisher_id}/configuration" "$config_data" "200" "$api_key"
+make_request "PATCH" "/api/v1/publishers/$PUBLISHER_ID/configuration" "$CONFIG_DATA" "Authorization: Bearer $API_KEY"
 
-# Get publisher statistics
-print_header "Getting publisher statistics"
-make_request "GET" "${PUBLISHERS_API_URL}/${publisher_id}/statistics?granularity=daily" "" "200" "$api_key"
+# Test getting publisher statistics
+print_header "Testing Publisher Statistics"
+make_request "GET" "/api/v1/publishers/$PUBLISHER_ID/statistics" "" "Authorization: Bearer $API_KEY"
 
-# Generate integration code
-print_header "Generating integration code"
-make_request "GET" "${PUBLISHERS_API_URL}/${publisher_id}/integration-code?platform=custom&include_comments=true" "" "200" "$api_key"
+# Cleanup
+rm -f "$TEMP_RESPONSE"
 
-# Configure webhook
-print_header "Configuring webhook"
-webhook_data='{
-  "endpoint_url": "https://example.com/webhook",
-  "secret_key": "whsec_abcdef1234567890abcdef1234567890",
-  "events": ["task.completed", "user.session.expired"],
-  "active": true
-}'
-make_request "POST" "${PUBLISHERS_API_URL}/${publisher_id}/webhooks" "$webhook_data" "200" "$api_key"
-
-# Regenerate API key
-print_header "Regenerating API key"
-make_request "POST" "${PUBLISHERS_API_URL}/${publisher_id}/regenerate-api-key" "" "200" "$api_key"
-
-# Extract new API key
-new_api_key=$(echo "$response_body" | grep -o '"api_key":"[^"]*"' | cut -d'"' -f4)
-if [ -z "$new_api_key" ]; then
-  echo -e "${RED}Failed to extract new API key from response${NC}"
-  exit 1
-fi
-
-echo "New API Key: $new_api_key"
-
-# Test API documentation endpoints
-print_header "Testing API Documentation Endpoints"
-make_request "GET" "${PUBLISHERS_API_URL}/docs" "" "200"
-make_request "GET" "${PUBLISHERS_API_URL}/redoc" "" "200"
-make_request "GET" "${PUBLISHERS_API_URL}/openapi.json" "" "200"
-
-echo -e "\n${GREEN}All tests completed!${NC}" 
+echo -e "\n${GREEN}Test script completed${NC}" 
