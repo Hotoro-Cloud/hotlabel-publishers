@@ -8,7 +8,7 @@ from app.core.auth import validate_api_key
 from app.schemas.publisher import Publisher, PublisherCreate, PublisherUpdate, PublisherConfigurationUpdate
 from app.crud import publisher as publisher_crud
 from app.models.publisher import Publisher as PublisherModel
-from app.schemas.task import Task
+from app.schemas.task import Task, TaskListResponse
 
 router = APIRouter(prefix="/publishers", tags=["publishers"])
 
@@ -79,8 +79,8 @@ HotLabel.init({{
         ]
     }
 
-@router.get("/{publisher_id}/tasks", response_model=List[Task])
-def get_available_tasks(
+@router.get("/{publisher_id}/tasks", response_model=TaskListResponse)
+async def get_available_tasks(
     publisher_id: str,
     status: str = Query(None, enum=["PENDING", "AVAILABLE"]),
     limit: int = Query(10, ge=1, le=100),
@@ -95,14 +95,14 @@ def get_available_tasks(
         )
     
     # Get tasks from tasks service
-    tasks = publisher_crud.get_available_tasks(
+    tasks = await publisher_crud.get_available_tasks(
         db=db,
         publisher_id=publisher_id,
         status=status,
         limit=limit
     )
     
-    return tasks
+    return TaskListResponse(total=len(tasks), items=tasks)
 
 @router.patch("/{publisher_id}", response_model=Publisher)
 def update_publisher_details(

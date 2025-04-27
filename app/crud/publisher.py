@@ -8,6 +8,7 @@ from app.models.publisher import Publisher
 from app.schemas.publisher import PublisherCreate, PublisherUpdate, PublisherConfigurationUpdate
 from app.schemas.task import Task
 from app.core.exceptions import ResourceNotFound, DuplicateResource
+from app.core.config import settings
 
 def get_publisher(db: Session, publisher_id: str) -> Optional[Publisher]:
     return db.query(Publisher).filter(Publisher.id == publisher_id).first()
@@ -96,17 +97,20 @@ async def get_available_tasks(
     status: Optional[str] = None,
     limit: int = 10
 ) -> List[Task]:
-    # In a real implementation, this would call the tasks service API
-    # For now, return mock data
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"http://tasks-service/api/v1/tasks",
+            f"{settings.TASKS_SERVICE_URL}/api/v1/tasks",
             params={
-                "publisher_id": publisher_id,
+                "provider_id": publisher_id,
                 "status": status,
                 "limit": limit
             }
         )
         if response.status_code == 200:
-            return [Task(**task) for task in response.json()]
+            tasks_data = response.json()
+            if isinstance(tasks_data, dict) and "items" in tasks_data:
+                return [Task(**task) for task in tasks_data["items"]]
+            elif isinstance(tasks_data, list):
+                return [Task(**task) for task in tasks_data]
+            return []
         return []

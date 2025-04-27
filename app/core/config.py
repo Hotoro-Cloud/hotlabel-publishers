@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     PROJECT_NAME: str = "HotLabel Publisher Management"
     
+    # Service URLs
+    TASKS_SERVICE_URL: str = os.getenv("TASKS_SERVICE_URL", "http://tasks:8002")
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     
