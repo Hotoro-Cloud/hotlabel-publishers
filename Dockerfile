@@ -21,15 +21,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all code (app, scripts, migrations, etc.)
 COPY . .
 
-# Make the DB readiness script executable
+# Make scripts executable
 RUN chmod +x /app/scripts/ensure_db_ready.py
+RUN chmod +x /app/start.py
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-python /app/scripts/ensure_db_ready.py\n\
-exec "$@"' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
-
-# Run with Uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run with start.py script
+CMD ["python", "start.py"]

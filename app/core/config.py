@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(32)
     PROJECT_NAME: str = "HotLabel Publisher Management"
     
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    
     # CORS
     CORS_ORIGINS: List[AnyHttpUrl] = []
 
@@ -22,6 +25,10 @@ class Settings(BaseSettings):
     
     # Redis
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    
+    # Security
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
