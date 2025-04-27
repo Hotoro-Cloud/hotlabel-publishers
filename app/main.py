@@ -83,22 +83,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 # Custom docs URL with API prefix
-@app.get(f"{settings.API_V1_STR}/docs", include_in_schema=False)
+@app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
-        openapi_url=f"{settings.API_V1_STR}/openapi.json",
+        openapi_url="/openapi.json",
         title=app.title + " - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
     )
 
-@app.get(f"{settings.API_V1_STR}/redoc", include_in_schema=False)
+@app.get("/redoc", include_in_schema=False)
 async def redoc_html():
     return get_redoc_html(
-        openapi_url=f"{settings.API_V1_STR}/openapi.json",
+        openapi_url="/openapi.json",
         title=app.title + " - ReDoc",
     )
 
-@app.get(f"{settings.API_V1_STR}/openapi.json", include_in_schema=False)
+@app.get("/openapi.json", include_in_schema=False)
 async def get_open_api_endpoint():
     return get_openapi(
         title=app.title,
@@ -149,4 +149,4 @@ async def ready_check():
 # Root redirect to docs
 @app.get("/", include_in_schema=False)
 async def root_redirect():
-    return {"message": "HotLabel Publisher Management Service API", "docs": f"{settings.API_V1_STR}/docs"}
+    return {"message": "HotLabel Publisher Management Service API", "docs": "/docs"}
