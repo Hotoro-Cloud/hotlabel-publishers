@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, String, DateTime, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import secrets
 import uuid
@@ -8,7 +9,7 @@ from app.core.database import Base
 class Publisher(Base):
     __tablename__ = "publishers"
 
-    id = Column(String, primary_key=True, index=True, default=lambda: f"pub_{uuid.uuid4().hex[:8]}")
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     name = Column(String, index=True)
     website = Column(String, index=True)
     email = Column(String, unique=True, index=True)

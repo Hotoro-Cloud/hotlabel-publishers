@@ -34,4 +34,10 @@ class TaskListResponse(BaseModel):
     items: List[Task]
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class TaskStatusUpdate(BaseModel):
+    status: str
+    result: Optional[Dict[str, Any]] = None
+    quality_score: Optional[float] = None
+    rejection_reason: Optional[str] = None 

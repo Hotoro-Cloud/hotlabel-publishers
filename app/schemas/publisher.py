@@ -1,5 +1,5 @@
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, UUID4
 from datetime import datetime
 
 class PublisherBase(BaseModel):
@@ -7,6 +7,7 @@ class PublisherBase(BaseModel):
     email: EmailStr
     website: str
     description: str
+    preferred_task_types: List[str] = []
 
 class PublisherCreate(PublisherBase):
     pass
@@ -17,9 +18,10 @@ class PublisherUpdate(BaseModel):
     website: Optional[str] = None
     description: Optional[str] = None
     configuration: Optional[dict] = None
+    preferred_task_types: Optional[List[str]] = None
 
 class PublisherInDB(PublisherBase):
-    id: str
+    id: UUID4
     api_key: str
     configuration: dict = {}
     is_active: bool
@@ -30,6 +32,9 @@ class PublisherInDB(PublisherBase):
         orm_mode = True
 
 class Publisher(PublisherInDB):
+    pass
+
+class PublisherResponse(PublisherInDB):
     pass
 
 class PublisherConfigurationUpdate(BaseModel):

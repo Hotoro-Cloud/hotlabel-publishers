@@ -47,6 +47,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Health check endpoint
+@app.get(f"{settings.API_V1_STR}/publishers/health", tags=["health"])
+def health_check():
+    logger.info("Health check endpoint called")
+    return {"status": "healthy", "service": settings.SERVICE_NAME}
+
 # Include API routes
 app.include_router(publishers.router, prefix=settings.API_V1_STR)
 
@@ -67,6 +73,16 @@ async def service_exception_handler(request: Request, exc: ServiceException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # For GET requests, ignore body validation errors
+    if request.method == "GET":
+        for error in exc.errors():
+            if error["loc"][0] == "body":
+                # Just return a successful response instead of continuing with the pipeline
+                return JSONResponse(
+                    status_code=200,
+                    content={"message": "Body validation ignored for GET request"}
+                )
+    
     return JSONResponse(
         status_code=400,
         content={
@@ -106,11 +122,6 @@ async def get_open_api_endpoint():
         description=app.description,
         routes=app.routes,
     )
-
-# Health check endpoint
-@app.get("/health", tags=["health"])
-def health_check():
-    return {"status": "healthy", "service": settings.SERVICE_NAME}
 
 # Ready check endpoint
 @app.get("/ready", tags=["health"])

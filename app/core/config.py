@@ -8,9 +8,10 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = secrets.token_urlsafe(32)
     PROJECT_NAME: str = "HotLabel Publisher Management"
+    SERVICE_NAME: str = "publishers-service"
     
     # Service URLs
-    TASKS_SERVICE_URL: str = os.getenv("TASKS_SERVICE_URL", "http://tasks:8002")
+    TASKS_SERVICE_URL: str = os.getenv("TASKS_INTERNAL_URL", "http://kong:8000/internal/api/v1/tasks")
     
     # Logging
     LOG_LEVEL: str = "INFO"

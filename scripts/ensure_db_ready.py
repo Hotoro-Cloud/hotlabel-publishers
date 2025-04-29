@@ -24,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Get database URL from environment
-DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/hotlabel_publishers")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/hotlabel_publishers")
 MAX_RETRIES = 10
 RETRY_DELAY = 5  # seconds
 
