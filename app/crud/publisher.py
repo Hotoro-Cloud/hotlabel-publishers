@@ -137,7 +137,7 @@ async def get_available_tasks(publisher_id: str, db: AsyncSession) -> List[Dict]
         
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{settings.TASKS_SERVICE_URL}/available",
+                f"{settings.TASKS_SERVICE_URL}/api/v1/tasks/available",
                 params={"publisher_id": str(publisher_id)},
                 headers=headers
             )

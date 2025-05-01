@@ -211,11 +211,25 @@ def get_publisher_tasks(
         # For now, we'll try to call it synchronously and return empty list on error
         import asyncio
         try:
-            # Use a simple wrapper to run the async function
-            loop = asyncio.get_event_loop()
+            # Get the current running event loop if it exists, or create a new one
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                # If we're not in an event loop context, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+            # Run the async function in the event loop
             tasks = loop.run_until_complete(
                 publisher_crud.get_available_tasks(publisher_id=publisher_uuid, db=db)
             )
+            
+            logger.info(f"Retrieved {len(tasks)} tasks for publisher {publisher_id}")
+            
+            # If there are no tasks, log this specifically
+            if not tasks:
+                logger.warning(f"No tasks found for publisher {publisher_id}")
+                
             return tasks
         except Exception as e:
             logger.error(f"Error getting tasks: {str(e)}")
